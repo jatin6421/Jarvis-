@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J.A.R.V.I.S. 2.0 - Gemini Powered</title>
+    <style>
+        /* CSS Variables for Gold & Silver Theme */
+        :root {
+            --dark-background: #050505; /* Keep dark for contrast */
+
+            /* Gold Palette */
+            --gold-primary: #FFD700;    /* Gold */
+            --gold-light: #FFEA80;      /* Lighter Gold */
+            --gold-dark: #B8860B;       /* Darker Gold (Goldenrod) */
+            --gold-glow-strong: rgba(255, 215, 0, 0.8);
+            --gold-glow-medium: rgba(255, 215, 0, 0.5);
+            --gold-glow-subtle: rgba(255, 215, 0, 0.2);
+
+            /* Silver Palette */
+            --silver-primary: #C0C0C0;  /* Silver */
+            --silver-light: #E0E0E0;    /* Lighter Silver */
+            --silver-dark: #A9A9A9;     /* Darker Silver (DarkGray) */
+            --silver-glow-strong: rgba(192, 192, 192, 0.8);
+            --silver-glow-medium: rgba(192, 192, 192, 0.5);
+            --silver-glow-subtle: rgba(192, 192, 192, 0.2);
+
+            /* General Accents & Text */
+            --accent-border: var(--gold-dark);
+            --accent-shadow: var(--gold-primary);
+            --text-primary: var(--silver-light); /* Main text in lighter silver */
+            --text-secondary: var(--silver-primary); /* Secondary text in primary silver */
+            --text-accent: var(--gold-primary); /* Accent text in gold */
+
+            /* Functional Colors (warnings, errors) */
+            --warning-yellow: #FFC107;
+            --error-red: #FF0000;
+        }
+
+        body {
+            background-color: var(--dark-background);
+            color: var(--text-primary);
+            font-family: 'Consolas', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars unless necessary for content */
+        }
+
+        .hud-container {
+            width: 90%;
+            max-width: 1000px;
+            height: 90vh;
+            max-height: 700px;
+            position: relative;
+            border: 2px solid var(--accent-border);
+            box-shadow:
+                0 0 15px var(--accent-shadow),
+                0 0 30px var(--gold-glow-medium),
+                0 0 45px var(--gold-glow-subtle); /* Layered glow with gold */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: rgba(10, 10, 0, 0.4); /* Darker, slightly golden tint */
+            backdrop-filter: blur(8px); /* Stronger glass effect */
+            overflow: hidden; /* Ensure background grid stays within bounds */
+            border-radius: 15px; /* Rounded corners for the container */
+        }
+
+        /* Subtle background grid animation */
+        .hud-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(to right, var(--silver-glow-subtle) 1px, transparent 1px), /* Silver grid */
+                linear-gradient(to bottom, var(--silver-glow-subtle) 1px, transparent 1px);
+            background-size: 25px 25px; /* Slightly larger grid for desktop */
+            animation: panBackground 60s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.3; /* More subtle */
+        }
+
+        /* Subtle scanline/noise effect */
+        .hud-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                var(--dark-background),
+                var(--dark-background) 1px,
+                var(--silver-glow-subtle) 1px, /* Silver scanlines */
+                var(--silver-glow-subtle) 2px
+            );
+            animation: scanlines 1s linear infinite;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.1; /* Very subtle */
+        }
+
+        @keyframes panBackground {
+            from { background-position: 0 0; }
+            to { background-position: -1000px -1000px; }
+        }
+
+        @keyframes scanlines {
+            from { background-position: 0 0; }
+            to { background-position: 0 100%; }
+        }
+
+        .hud-border-inner {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            right: 30px;
+            bottom: 30px;
+            border: 1px solid var(--gold-dark); /* Darker gold inner border */
+            pointer-events: none;
+            border-radius: 10px; /* Inner rounded corners */
+        }
+
+        .corner-accent {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-color: var(--gold-light); /* Gold accents */
+            border-style: solid;
+            border-width: 0;
+            box-shadow: 0 0 8px var(--gold-light); /* Glow for accents */
+        }
+        .corner-accent.top-left { top: 20px; left: 20px; border-top-width: 2px; border-left-width: 2px; }
+        .corner-accent.top-right { top: 20px; right: 20px; border-top-width: 2px; border-right-width: 2px; }
+        .corner-accent.bottom-left { bottom: 20px; left: 20px; border-bottom-width: 2px; border-left-width: 2px; }
+        .corner-accent.bottom-right { bottom: 20px; right: 20px; border-bottom-width: 2px; border-right-width: 2px; }
+
+        .jarvis-title {
+            color: var(--text-accent); /* Gold title */
+            font-size: 28px; /* Slightly larger */
+            font-weight: bold;
+            position: absolute;
+            top: 45px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: flicker 0.3s infinite alternate;
+            text-shadow:
+                0 0 10px var(--text-accent),
+                0 0 20px var(--text-accent),
+                0 0 30px var(--gold-glow-medium); /* Deeper gold glow */
+            letter-spacing: 2px; /* More technical look */
+            filter: brightness(1.2); /* Extra pop */
+            z-index: 10;
+        }
+        .jarvis-title::after {
+            content: '';
+            display: block;
+            width: 160px; /* Slightly wider */
+            height: 2px; /* Thicker line */
+            background-color: var(--gold-dark);
+            margin: 8px auto 0;
+            box-shadow: 0 0 8px var(--gold-dark); /* Stronger glow for underline */
+        }
+
+        .status-display {
+            font-size: 20px; /* Slightly larger */
+            font-weight: bold;
+            color: var(--text-primary); /* Silver status text */
+            text-align: center;
+            position: absolute;
+            top: 90px; /* Adjusted position */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            text-shadow: 0 0 8px var(--text-primary); /* Stronger silver glow */
+            z-index: 5;
+        }
+
+        .system-health-widget {
+            position: absolute;
+            top: 140px; /* Adjusted position */
+            left: 40px;
+            width: 300px; /* Slightly wider */
+            background-color: rgba(0, 0, 0, 0.25); /* More neutral transparent background */
+            border: 1px solid var(--silver-dark); /* Silver border */
+            padding: 18px; /* More padding */
+            display: flex;
+            flex-direction: column;
+            gap: 12px; /* More space between items */
+            box-shadow:
+                0 0 12px var(--silver-glow-medium), /* Silver glow */
+                inset 0 0 5px var(--silver-glow-subtle); /* Outer and inner glow */
+            z-index: 5;
+            border-radius: 12px; /* More rounded corners */
+        }
+
+        .health-item {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            font-size: 14px; /* Slightly larger font */
+            color: var(--text-secondary); /* Secondary text color */
+        }
+
+        .health-label {
+            width: 90px; /* Wider label */
+            color: var(--gold-light); /* Gold label */
+            font-weight: bold;
+            text-shadow: 0 0 4px var(--gold-glow-medium);
+        }
+
+        .health-value {
+            flex-grow: 1;
+            text-align: right;
+            margin-left: 15px; /* More margin */
+            color: var(--silver-primary); /* Silver value */
+            text-shadow: 0 0 4px var(--silver-glow-medium);
+        }
+
+        .health-bar-container {
+            width: 100%;
+            height: 8px; /* Thicker bar */
+            background-color: #1a1a1a;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 6px; /* More margin */
+            box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.6); /* Stronger inner shadow for depth */
+        }
+
+        .health-bar {
+            height: 100%;
+            background: linear-gradient(to right, var(--gold-primary), var(--silver-primary)); /* Gold to Silver gradient */
+            width: 0%;
+            transition: width 0.5s ease-out;
+            box-shadow: 0 0 8px var(--gold-primary); /* Glow based on start color */
+        }
+        .health-bar.yellow { background: linear-gradient(to right, var(--warning-yellow), #FFAA00); box-shadow: 0 0 8px var(--warning-yellow); }
+        .health-bar.red { background: linear-gradient(to right, var(--error-red), #FF5500); box-shadow: 0 0 8px var(--error-red); }
+
+        .central-animation-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px; /* Larger animation area */
+            height: 300px;
+            z-index: 2;
+            display: flex; /* To center the animation within */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .listening-animation, .speaking-animation, .processing-animation, .sleeping-animation {
+            position: relative; /* Changed to relative for centering within flex container */
+            transform: none; /* Reset transform as flex handles centering */
+            border-radius: 50%;
+            opacity: 0.8;
+            transition: all 0.2s ease-out;
+            z-index: 3;
+            box-shadow: 0 0 20px var(--gold-glow-strong), 0 0 40px var(--silver-glow-medium); /* Gold and Silver glow */
+            filter: saturate(1.5) brightness(1.1); /* Enhance vibrancy */
+        }
+        .listening-animation { width: 120px; height: 120px; border: 4px solid var(--silver-primary); animation: pulse 1s infinite alternate; }
+        .speaking-animation { width: 100px; height: 100px; background-color: var(--gold-accent); animation: bounce 0.5s infinite; }
+        .processing-animation { width: 110px; height: 110px; border: 5px dotted var(--silver-light); animation: rotate 2s infinite linear; }
+        .sleeping-animation { width: 25px; height: 25px; background-color: var(--gold-dark); opacity: 0.6; animation: fade 2s infinite alternate; }
+
+        @keyframes flicker { 0%, 100% { opacity: 1; text-shadow: 0 0 10px var(--text-accent); } 50% { opacity: 0.8; text-shadow: none; } }
+        @keyframes pulse { from { transform: scale(0.8); opacity: 0.6; box-shadow: 0 0 15px var(--gold-primary); } to { transform: scale(1.2); opacity: 1; box-shadow: 0 0 30px var(--gold-primary); } }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes fade { from { opacity: 0.3; } to { opacity: 0.9; } }
+
+        .voice-controls {
+            position: absolute;
+            top: 140px; /* Adjusted position */
+            right: 40px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        .voice-controls label {
+            font-size: 15px; /* Slightly larger */
+            margin-bottom: 8px; /* More space */
+            color: var(--silver-light); /* Silver label */
+            text-shadow: 0 0 4px var(--silver-glow-medium);
+        }
+        .voice-controls select, .voice-controls button {
+            background-color: rgba(0, 0, 0, 0.7); /* Darker, more transparent */
+            color: var(--text-primary); /* Silver text */
+            border: 2px solid var(--silver-dark); /* Silver border */
+            padding: 10px; /* More padding */
+            font-family: 'Consolas', monospace;
+            font-size: 13px; /* Slightly larger font */
+            width: 220px; /* Slightly wider */
+            cursor: pointer;
+            margin-bottom: 12px; /* More margin */
+            text-align: left;
+            transition: all 0.3s ease-in-out; /* Smoother transition */
+            border-radius: 8px; /* More rounded corners */
+            box-shadow: 0 0 8px var(--silver-glow-medium); /* Silver glow */
+        }
+        .voice-controls button { text-align: center; }
+        .voice-controls select:hover, .voice-controls button:hover {
+            background-color: var(--silver-primary);
+            color: var(--dark-background);
+            border-color: var(--silver-light);
+            box-shadow:
+                0 0 15px var(--silver-light),
+                0 0 25px var(--silver-glow-medium); /* Stronger hover glow */
+            transform: translateY(-2px) scale(1.02); /* Slight lift and scale */
+        }
+        #muteBtn.muted {
+            background-color: var(--error-red);
+            border-color: #FF5500;
+            color: var(--white);
+            box-shadow: 0 0 15px var(--error-red);
+        }
+
+        .initial-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.98); /* Almost opaque */
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000; flex-direction: column; gap: 25px; /* More space */
+        }
+        .initial-overlay button {
+            background-color: var(--gold-primary); /* Gold button */
+            color: var(--dark-background); /* Dark text on bright button */
+            border: 3px solid var(--gold-light); /* Thicker border */
+            padding: 18px 35px; /* More padding */
+            font-family: 'Consolas', monospace;
+            font-size: 28px; /* Larger font */
+            cursor: pointer;
+            border-radius: 10px; /* More rounded */
+            box-shadow:
+                0 0 20px var(--gold-light),
+                0 0 40px var(--gold-glow-medium); /* Intense gold glow */
+            transition: all 0.4s ease-in-out;
+            text-shadow: 0 0 8px rgba(0, 0, 0, 0.5); /* Dark shadow for contrast */
+        }
+        .initial-overlay button:hover {
+            background-color: var(--gold-light);
+            color: var(--dark-background);
+            box-shadow:
+                0 0 30px var(--gold-light),
+                0 0 60px var(--gold-glow-strong);
+            transform: translateY(-3px) scale(1.03); /* More pronounced lift */
+        }
+        .initial-overlay p {
+            color: var(--text-primary); /* Silver text */
+            font-size: 18px; /* Larger font */
+            margin-top: 15px;
+            text-shadow: 0 0 8px var(--text-primary); /* Stronger silver glow */
+        }
+
+        /* --- Mobile-First Design (max-width: 768px) --- */
+        @media (max-width: 768px) {
+            body {
+                align-items: flex-start; /* Align to top for better content display */
+                padding: 0; /* Remove body padding */
+                overflow-y: auto; /* Allow scrolling on smaller screens if content overflows */
+            }
+
+            .hud-container {
+                width: 100vw; /* Take up full viewport width */
+                height: 100vh; /* Take up full viewport height */
+                max-width: unset; /* Remove max-width constraint */
+                max-height: unset; /* Remove max-height constraint */
+                padding: 10px; /* Reduced padding for more content space */
+                flex-direction: column;
+                justify-content: flex-start; /* Stack content from top */
+                gap: 10px; /* Reduced space between main sections */
+                border: none; /* Remove main border for full screen feel */
+                box-shadow: none; /* Remove main box shadow */
+                border-top: 2px solid var(--accent-border); /* Simple top/bottom borders */
+                border-bottom: 2px solid var(--accent-border);
+                box-shadow: 0 0 8px var(--accent-shadow); /* Subtle glow for mobile container */
+                border-radius: 0; /* No rounded corners for full screen */
+            }
+
+            .hud-container::before {
+                background-size: 10px 10px; /* Even smaller grid for mobile */
+                animation-duration: 40s; /* Slightly faster pan */
+                opacity: 0.2;
+            }
+            .hud-container::after {
+                opacity: 0.05; /* Even more subtle scanlines */
+            }
+
+            .hud-border-inner, .corner-accent {
+                display: none; /* Simplify border elements on mobile */
+            }
+
+            .jarvis-title {
+                position: static;
+                transform: none;
+                margin-top: 10px;
+                margin-bottom: 8px;
+                font-size: 18px; /* Smaller font */
+                letter-spacing: 1px;
+                text-shadow: 0 0 6px var(--text-accent), 0 0 12px var(--text-accent); /* Adjusted glow */
+            }
+
+            .jarvis-title::after {
+                width: 60px; /* Smaller underline */
+                height: 1px;
+                margin-top: 4px;
+                box-shadow: 0 0 4px var(--gold-dark);
+            }
+
+            .status-display {
+                position: static;
+                transform: none;
+                margin-bottom: 10px;
+                font-size: 13px; /* Smaller font */
+                text-shadow: 0 0 3px var(--text-primary);
+            }
+
+            /* New container for bottom widgets on mobile */
+            .mobile-bottom-controls {
+                display: flex;
+                flex-direction: column; /* Stack by default */
+                width: 100%;
+                gap: 10px; /* Space between widgets */
+                align-items: center; /* Center widgets within this container */
+                flex-shrink: 0; /* Prevent shrinking */
+                padding-bottom: 10px; /* Padding at the bottom of the screen */
+                flex-grow: 0; /* Do not grow, let central animation take space */
+            }
+
+            .system-health-widget {
+                position: static;
+                width: 95%; /* Take up more width */
+                max-width: 300px; /* Constrain width for readability */
+                margin: 0 auto;
+                padding: 10px;
+                box-sizing: border-box;
+                box-shadow: 0 0 6px var(--silver-glow-subtle); /* Adjusted silver glow */
+                border-radius: 8px; /* Consistent rounded corners */
+            }
+            .health-label {
+                width: 50px; /* Smaller label width */
+                font-size: 9px;
+            }
+            .health-value {
+                font-size: 9px;
+            }
+            .health-bar-container {
+                height: 4px; /* Thinner bar */
+                border-radius: 2px;
+            }
+            .health-bar {
+                box-shadow: 0 0 4px var(--gold-primary);
+            }
+            .health-bar.yellow { box-shadow: 0 0 4px var(--warning-yellow); }
+            .health-bar.red { box-shadow: 0 0 4px var(--error-red); }
+
+            .voice-controls {
+                position: static;
+                width: 95%; /* Take up more width */
+                max-width: 300px; /* Constrain width */
+                margin: 0 auto;
+                align-items: center;
+            }
+            .voice-controls label {
+                font-size: 10px;
+                margin-bottom: 6px;
+            }
+            .voice-controls select, .voice-controls button {
+                width: 100%;
+                max-width: 200px; /* Limit max width */
+                font-size: 9px;
+                padding: 7px 4px;
+                border-radius: 6px;
+                box-shadow: 0 0 3px var(--silver-glow-subtle); /* Silver glow */
+            }
+            .voice-controls select:hover, .voice-controls button:hover {
+                box-shadow: 0 0 6px var(--silver-primary);
+            }
+
+            .central-animation-container {
+                position: static;
+                transform: none;
+                margin: 10px auto; /* Reduced margin */
+                width: 140px; /* Smaller animation */
+                height: 140px;
+                flex-grow: 1; /* Allow it to grow and push bottom elements down */
+            }
+            .listening-animation { width: 50px; height: 50px; border-width: 1.5px; box-shadow: 0 0 10px var(--silver-primary); }
+            .speaking-animation { width: 45px; height: 45px; box-shadow: 0 0 10px var(--gold-primary); }
+            .processing-animation { width: 50px; height: 50px; border-width: 2.5px; box-shadow: 0 0 10px var(--silver-light); }
+            .sleeping-animation { width: 10px; height: 10px; box-shadow: 0 0 6px var(--gold-dark); }
+
+            /* Responsive adjustment for slightly wider mobile screens (e.g., landscape phones, small tablets) */
+            @media (min-width: 480px) and (max-width: 768px) {
+                .mobile-bottom-controls {
+                    flex-direction: row; /* Arrange side-by-side */
+                    justify-content: space-around;
+                    flex-wrap: wrap; /* Allow wrapping if needed */
+                }
+                .system-health-widget, .voice-controls {
+                    width: 48%; /* Adjust width to fit two columns */
+                    margin: 0; /* Reset margin */
+                }
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="initial-overlay" id="initialOverlay">
+        <button id="startButton">Start J.A.R.V.I.S.</button>
+        <p>Click to initialize voice and audio systems.</p>
+    </div>
+
+    <div class="hud-container" style="opacity: 0;">
+        <div class="hud-border-inner"></div>
+        <div class="corner-accent top-left"></div>
+        <div class="corner-accent top-right"></div>
+        <div class="corner-accent bottom-left"></div>
+        <div class="corner-accent bottom-right"></div>
+
+        <div class="jarvis-title">J.A.R.V.I.S. 2.0</div>
+        <div class="status-display" id="statusDisplay">Initializing...</div>
+
+        <div class="central-animation-container">
+            <div id="stateAnimation" class="sleeping-animation"></div>
+        </div>
+
+        <!-- New container for bottom widgets on mobile -->
+        <div class="mobile-bottom-controls">
+            <div class="system-health-widget">
+                <div class="health-item"><span class="health-label">CPU Load:</span><span class="health-value" id="cpuValue">0%</span><div class="health-bar-container"><div class="health-bar" id="cpuBar"></div></div></div>
+                <div class="health-item"><span class="health-label">RAM Usage:</span><span class="health-value" id="ramValue">0%</span><div class="health-bar-container"><div class="health-bar" id="ramBar"></div></div></div>
+                <div class="health-item"><span class="health-label">Network:</span><span class="health-value" id="netValue">0Kb/s</span><div class="health-bar-container"><div class="health-bar" id="netBar"></div></div></div>
+                <div class="health-item"><span class="health-label">Time:</span><span class="health-value" id="dateTimeReadout"></span></div>
+                <div class="health-item"><span class="health-label">Status:</span><span class="health-value" id="systemStatus">Initializing</span></div>
+            </div>
+
+            <div class="voice-controls">
+                <label for="voiceSelect">Select Voice:</label>
+                <select id="voiceSelect"></select>
+                <button id="muteBtn">Mute J.A.R.V.I.S.</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const statusDisplay = document.getElementById('statusDisplay');
+        const dateTimeReadout = document.getElementById('dateTimeReadout');
+        const stateAnimation = document.getElementById('stateAnimation');
+        const voiceSelect = document.getElementById('voiceSelect');
+        const muteBtn = document.getElementById('muteBtn');
+        const initialOverlay = document.getElementById('initialOverlay');
+        const startButton = document.getElementById('startButton');
+        const hudContainer = document.querySelector('.hud-container');
+        const cpuValue = document.getElementById('cpuValue');
+        const cpuBar = document.getElementById('cpuBar');
+        const ramValue = document.getElementById('ramValue');
+        const ramBar = document.getElementById('ramBar');
+        const netValue = document.getElementById('netValue');
+        const netBar = document.getElementById('netBar');
+        const systemStatus = document.getElementById('systemStatus');
+
+        // --- Configuration ---
+        // IMPORTANT: If you want to use models other than gemini-2.0-flash, provide an API key here. Otherwise, leave this as-is.
+        const API_KEY = "AIzaSyCFE6PvN3cfmo9cQAwI1-bRdJsr9c4r4_E"; 
+        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+        
+        // --- State Variables ---
+        let currentState = "sleeping";
+        let currentVoice = null;
+        let isMuted = false;
+        let audioContext;
+        let chatHistory = []; // chatHistory is still maintained for Gemini API context
+        let isRecognitionActive = false; // New flag to manage recognition state
+
+        // --- Web Speech API ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const SpeechSynthesis = window.speechSynthesis;
+        let recognition;
+
+        // --- Core Functions ---
+
+        /**
+         * Logs a message to the console. Used after removing the chat display.
+         * @param {string} message - The message to log.
+         * @param {'user' | 'jarvis'} sender - The sender of the message.
+         */
+        function logToChat(message, sender) {
+            console.log(`${sender.toUpperCase()}: ${message}`); // Log to console for debugging
+        }
+
+        /**
+         * Updates the main status display and the state animation.
+         * @param {string} message - The status message to display.
+         * @param {string} state - The new system state ('listening', 'speaking', 'processing', 'sleeping').
+         */
+        function updateGUI(message, state) {
+            statusDisplay.textContent = message;
+            currentState = state;
+            stateAnimation.className = ''; // Clear previous animations
+            stateAnimation.classList.add(`${state}-animation`);
+        }
+
+        /**
+         * Speaks the given text using the selected voice.
+         * @param {string} text - The text to be spoken.
+         * @param {function} [onEndCallback] - Optional callback to run when speech finishes.
+         */
+        function speak(text, onEndCallback) {
+            if (SpeechSynthesis && currentVoice && !isMuted) {
+                SpeechSynthesis.cancel(); // Stop any current speech
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.voice = currentVoice;
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                utterance.onstart = () => updateGUI("Speaking...", "speaking");
+                utterance.onend = () => {
+                    updateGUI("Sleeping...", "sleeping");
+                    if (onEndCallback) onEndCallback();
+                    else listenForWakeWord(); // Default behavior
+                };
+                SpeechSynthesis.speak(utterance);
+            } else {
+                updateGUI("Sleeping...", "sleeping");
+                if (onEndCallback) onEndCallback();
+                else listenForWakeWord(); // Still need to continue the loop
+            }
+        }
+
+        /**
+         * Initializes and starts the speech recognition service to listen for the wake word.
+         */
+        function listenForWakeWord() {
+            // Only start if recognition is not already active and not currently speaking
+            if (recognition && !isRecognitionActive && !SpeechSynthesis.speaking && currentState !== 'listening') {
+                updateGUI("Sleeping... Say 'Jarvis' to wake me.", "sleeping");
+                try {
+                    recognition.start();
+                    isRecognitionActive = true; // Set flag to true when starting
+                } catch (e) {
+                    // This can happen if start() is called while it's already running.
+                    // The isRecognitionActive flag should largely prevent this.
+                    console.warn("Recognition already started or error during start:", e);
+                }
+            }
+        }
+
+        /**
+         * Handles the user's voice command.
+         * @param {string} transcript - The transcribed text from the user.
+         */
+        async function handleCommand(transcript) {
+            logToChat(transcript, 'user'); // This will now log to console
+            
+            // Add user message to chat history for context
+            chatHistory.push({ role: "user", parts: [{ text: transcript }] });
+
+            // Simple client-side commands
+            if (transcript.includes('open youtube')) {
+                const response = "Opening YouTube.";
+                logToChat(response, 'jarvis'); // This will now log to console
+                speak(response, () => window.open("https://www.youtube.com", '_blank'));
+                chatHistory.push({ role: "model", parts: [{ text: response }] });
+                return;
+            }
+            if (transcript.includes('open google')) {
+                const response = "Opening Google.";
+                logToChat(response, 'jarvis'); // This will now log to console
+                speak(response, () => window.open("https://www.google.com", '_blank'));
+                chatHistory.push({ role: "model", parts: [{ text: response }] });
+                return;
+            }
+            if (transcript.includes('clear chat')) {
+                const response = "Clearing the chat history.";
+                chatHistory = []; // Still clear the internal history
+                speak(response);
+                return;
+            }
+
+            // If not a simple command, send to Gemini
+            await processGeminiCommand();
+        }
+        
+        /**
+         * Processes the command using the Gemini API.
+         */
+        async function processGeminiCommand() {
+            updateGUI("Thinking...", "processing");
+            
+            const payload = {
+                contents: chatHistory,
+                // --- You can add safety settings and generation config here if needed ---
+                // generationConfig: { ... },
+                // safetySettings: [ ... ],
+            };
+
+            try {
+                const response = await fetch(GEMINI_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.candidates && data.candidates.length > 0) {
+                    const aiResponseText = data.candidates[0].content.parts[0].text;
+                    logToChat(aiResponseText, 'jarvis'); // This will now log to console
+                    chatHistory.push({ role: "model", parts: [{ text: aiResponseText }] });
+                    speak(aiResponseText);
+                } else {
+                    throw new Error("Invalid response structure from AI.");
+                }
+
+            } catch (error) {
+                console.error("Gemini API Error:", error);
+                const errorMessage = "I'm sorry, I'm having trouble connecting to my core intelligence. Please check the console for errors.";
+                logToChat(errorMessage, 'jarvis'); // This will now log to console
+                speak(errorMessage);
+            }
+        }
+
+
+        /**
+         * Initializes the application after the user clicks the start button.
+         */
+        async function initialize() {
+            initialOverlay.style.display = 'none';
+            hudContainer.style.transition = 'opacity 1s ease-in';
+            hudContainer.style.opacity = '1';
+
+            // Initialize AudioContext on user gesture
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            // Setup Speech Recognition
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+
+                recognition.onstart = () => {
+                    updateGUI("Listening...", "listening");
+                    isRecognitionActive = true; // Confirm active when started
+                };
+                
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript.trim().toLowerCase();
+                    // Wake word detection
+                    if (currentState === 'sleeping' && transcript.includes('jarvis')) {
+                        const command = transcript.replace('jarvis', '').trim();
+                        if (command) {
+                            handleCommand(command);
+                        } else {
+                            speak("Yes? How can I help?");
+                        }
+                    } else if (currentState !== 'sleeping') {
+                           handleCommand(transcript);
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    isRecognitionActive = false; // Reset flag on error
+                    if (event.error !== 'no-speech') {
+                       updateGUI(`Error: ${event.error}`, "sleeping");
+                    }
+                };
+                
+                recognition.onend = () => {
+                    isRecognitionActive = false; // Reset flag when recognition ends
+                    if (currentState !== 'speaking' && currentState !== 'processing') {
+                       listenForWakeWord(); // Attempt to restart listening if appropriate
+                    }
+                };
+
+            } else {
+                logToChat("Speech Recognition is not supported in this browser.", 'jarvis'); // This will now log to console
+            }
+
+            // Setup Speech Synthesis
+            populateVoiceList();
+            if (SpeechSynthesis.onvoiceschanged !== undefined) {
+                SpeechSynthesis.onvoiceschanged = populateVoiceList;
+            }
+            
+            // Start main loops
+            updateSimulatedData();
+            setInterval(updateSimulatedData, 1000);
+            
+            const greeting = "J.A.R.V.I.S. system is online. How can I assist you?";
+            logToChat(greeting, 'jarvis'); // This will now log to console
+            speak(greeting);
+        }
+
+        /**
+         * Populates the voice selection dropdown.
+         */
+        function populateVoiceList() {
+            const voices = SpeechSynthesis.getVoices();
+            if (voices.length === 0) return;
+
+            voiceSelect.innerHTML = '';
+            let defaultMaleVoice = null;
+
+            voices.filter(v => v.lang.startsWith('en')).forEach(voice => {
+                const option = document.createElement('option');
+                option.textContent = `${voice.name} (${voice.lang})`;
+                option.setAttribute('data-name', voice.name);
+                voiceSelect.appendChild(option);
+
+                if (!defaultMaleVoice && voice.name.toLowerCase().includes('male')) {
+                    defaultMaleVoice = voice;
+                }
+            });
+
+            currentVoice = defaultMaleVoice || voices.find(v => v.lang.startsWith('en')) || voices[0];
+            if (currentVoice) {
+                voiceSelect.value = currentVoice.name;
+            }
+        }
+
+        /**
+         * Updates the simulated health data widgets.
+         */
+        function updateSimulatedData() {
+            const cpu = Math.floor(Math.random() * 60) + 20;
+            const ram = Math.floor(Math.random() * 60) + 30;
+            const net = Math.floor(Math.random() * 490) + 10;
+
+            cpuValue.textContent = `${cpu}%`;
+            cpuBar.style.width = `${cpu}%`;
+            ramValue.textContent = `${ram}%`;
+            ramBar.style.width = `${ram}%`;
+            netValue.textContent = `${net}Kb/s`;
+            netBar.style.width = `${(net / 500) * 100}%`;
+
+            let statusText = "Optimal";
+            if (cpu > 80 || ram > 85) { statusText = "High Load"; }
+            systemStatus.textContent = statusText;
+
+            dateTimeReadout.textContent = new Date().toLocaleString('en-US', {
+                year: '2-digit', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+            });
+        }
+
+        // --- Event Listeners ---
+        startButton.addEventListener('click', initialize);
+
+        voiceSelect.addEventListener('change', () => {
+            const selectedVoiceName = voiceSelect.selectedOptions[0].getAttribute('data-name');
+            currentVoice = SpeechSynthesis.getVoices().find(voice => voice.name === selectedVoiceName);
+        });
+
+        muteBtn.addEventListener('click', () => {
+            isMuted = !isMuted;
+            if (isMuted) {
+                SpeechSynthesis.cancel();
+                muteBtn.textContent = 'Unmute J.A.R.V.I.S.';
+                muteBtn.classList.add('muted');
+            } else {
+                muteBtn.textContent = 'Mute J.A.R.V.I.S.';
+                muteBtn.classList.remove('muted');
+                speak("Audio enabled.");
+            }
+        });
+
+    </script>
+</body>
+</html>
+
